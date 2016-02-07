@@ -1,0 +1,71 @@
+function [result] = sparse_representation_classifier(Train_mat,train_label, Test, rip_mat,error_const)
+%sparse_representation_classifier
+% Code written by sudarshan b 
+% http://sudarshan1994.weebly.com/
+% This code requires cvx to solve the optimization problem 
+% cvx can be downloaded from http://cvxr.com/cvx/
+% --- INPUTS-------------------------------------------------------------
+% Train_mat - training matrix
+% train_label - training labels
+% Test - test vector or matrix depending on the number of test objects 
+% rip_mat- This is a matrix with the restricted isometry property
+% error_const- is the measure of noise in dataset (from an optimization perspective its the regularization constant)   
+%--- OUTPUTS------------------------------------------------------------
+% result - recognition result for entire test data
+%-----What it does-------------------------------------------------------
+%   min|x|_1
+%   S.T |y-Ax|_2 <= error const
+%y - normalised test sample
+% A - normalised training samples
+% x - sparse classification vector
+%-------------------------------------------------------------------------
+%Here the rip matrix is used to project the training matrix and the test matrix to a lower dimensional space
+%it is to be noted that the the normalized matrix is obtained using the code given in the link below
+%link http://in.mathworks.com/matlabcentral/fileexchange/22771-greedy-algorithms-promoting-group-sparsity 
+ 
+
+    trn_mat = rip_mat*Train_mat;
+    tst_mat = rip_mat*Test;  
+% Normalising the training set
+    for i=1:size(trn_mat,2)
+        Atilde(:,i)=trn_mat(:,i)/norm(trn_mat(:,i),2);
+    end
+   
+    n = size(trn_mat,2); % total number of samples in the training database
+    n_test = size(tst_mat,2); % number of test data to be classified
+    for iter = 1:n_test % looping through all the test samples
+        %intialisation required to calculate the largest contributing class to the 2 norm of the solution vector xp
+        largest_contributing_value_to_xp=-1;
+        sum=0;
+        index=0;
+        ytilde = tst_mat(:,iter);
+        ytilde = ytilde/norm(ytilde); % normalizing the test sample
+        %the optimization problem is solved here using cvx
+        %from here my part starts
+	cvx_begin
+            variable xp(n)
+            minimise(norm(xp,1));
+            subject to 
+            norm((Atilde*xp)-ytilde,2)<=error_const;
+       cvx_end
+             xp ;
+             norm_xp=norm(xp,1);
+             %my decision
+             length_xp=size(xp,1);
+             %this is where from the solution vector xp we calculate the class of the test object
+             %this is done by calculating the class that contributes the most to the 2 norm of the solution vector xp
+             for temp_1=1:length_xp
+                sum=sum+abs(xp(temp_1));
+                if(temp_1~=1)
+                    if(train_label(temp_1-1)~=train_label(temp_1)|(temp_1==length_xp))
+                        if(largest_contributing_value_to_xp<sum)
+                            largest_contributing_value_to_xp=sum-abs(xp(temp_1));
+                            index=train_label(temp_1-1);
+                        end
+                        sum=0;
+                    end
+                end
+             end
+       result(iter) =index% result is stored here in the result vector    
+    end
+end
