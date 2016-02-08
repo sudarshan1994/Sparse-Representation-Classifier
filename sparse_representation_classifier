@@ -1,7 +1,7 @@
 function [result] = sparse_representation_classifier(Train_mat,train_label, Test, rip_mat,error_const)
 %sparse_representation_classifier
 % Code written by sudarshan b 
-% http://sudarshan1994.weebly.com/
+% 
 % This code requires cvx to solve the optimization problem 
 % cvx can be downloaded from http://cvxr.com/cvx/
 % --- INPUTS-------------------------------------------------------------
